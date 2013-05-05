@@ -2,7 +2,7 @@
 
 [OctoberskyJS](https://www.facebook.com/octoberskyjs?fref=ts) 의 2차 스터디 발표자료 입니다.
 
-[자바스크립트 핵심가이드]() 챕터 4의 일부 주제를 다루고 있습니다.
+[자바스크립트 핵심가이드](http://www.yes24.com/24/goods/3071412?scode=032&OzSrank=1) 챕터 4의 일부 주제를 다루고 있습니다.
 
 ## Run this code
 
