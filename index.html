@@ -1,0 +1,411 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title>chapter 1 - java optimization</title>
+	<meta name="autho" content="chitacan">
+
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/beige.css" id="theme">
+
+	<!-- For syntax highlighting -->
+	<link rel="stylesheet" href="lib/css/solarized_light.css">
+
+	<link rel="stylesheet" href="css/jquery.pnotify.default.css">
+	<link rel="stylesheet" href="css/jquery.pnotify.default.icons.css">
+
+	<style type="text/css">
+	.alert {
+		padding: 8px 35px 8px 14px;
+		margin-bottom: 18px;
+		color: #8b743d;
+		text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+		background-color: #fcf8e3;
+		border: 1px solid #fbeed5;
+		-webkit-border-radius: 4px;
+		-moz-border-radius: 4px;
+		border-radius: 4px;
+	}
+
+	.answerbox
+{
+height: 20px;
+width:  20px;
+border: 1px solid black;
+text-align:center;
+}
+	</style>
+	
+	<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+	<!-- 
+	<script>
+		document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+	</script>
+	-->
+
+	<!--[if lt IE 9]>
+	<script src="lib/js/html5shiv.js"></script>
+	<![endif]-->
+</head>
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section>
+				<h1>Function</h1>
+				<p>
+					<small>by
+						<a href="https://github.com/chitacan" target="_black">chitacan</a>
+					</small>
+				</p>
+			</section>
+			<section>
+				<h2>Contents</h2>
+				<ul>
+					<li>Scope</li>
+					<li>Closure</li>
+					<li>Module Pattern</li>
+					<li>Curry</li>
+					<li>Memoization</li>
+				</ul>
+			</section>
+			<section>
+				<h2>Scope</h2>
+				<ul>
+					<li>자바 스크립트는 <strong>함수 유효범위</strong>만 존재한다.</li>
+					<li>함수 내에서 정의된 매개변수는 함수 외부에서 접근 불가</li>
+					<li>내부에서는 자유롭게 접근 가능</li>
+				</ul>
+			</section>
+			<section class="stack">
+				<section>
+					<h2>Closure</h2>
+					<p>자신의 범위 밖에 있는 변수들에 접근할 수 있는 코드블록</p>
+					<ul>
+						<li>자신을 가지고 있는 함수의 <strong>context</strong>에 접근할 수 있기 때문</li>
+						<li>복사본이 아니라 변수자체에 접근할 수 있음</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Closure</h2>
+					<p>외부에서 value 값에 접근할 수 없게 만들기</p>
+					<pre><code>
+	var myObject = function () {
+	  var value = 0;
+	  var what = 0;
+
+	  return {
+	    increment: function(inc) {
+	      value += typeof inc === 'number' ? inc : 1;
+	      what += 1;
+	    },
+	    getValue: function() {
+	      return value;
+	    }
+	  }
+	}();
+	myObject.increment(3);
+	myObject.getValue();
+					</code></pre>
+					<small class="description-right">
+						<a data-id="0">Run this code</a>
+					</small>
+				</section>
+				<section>
+					<h2 id="closure-usage">Closure</h2>
+					<pre><code>
+	var fade = function(node) {
+	    var level = 1;
+	    var step = function() {
+	        var hex = level.toString(16);
+	        node.css('color', '#' + hex + 'FFFF' + hex);
+	        if (level < 15) {
+	            level += 1;
+	            setTimeout(step, 100);
+	        }
+	    };
+	    setTimeout(step, 100);
+	}
+
+	fade($('#closure-usage'));
+					</code></pre>
+					<small class="description-right">
+						<a data-id="1">Run this code</a>
+					</small>
+				</section>
+				<section>
+					<h2>Closure</h2>
+					<p>나쁜 예제</p>
+					<pre><code id="closure-bad">
+	var addHandlers = function(nodes) {
+	  var i;
+	  for (i = 0 ; i < nodes.length ; i += 1) {
+	    nodes[i].onclick = function(e) {
+	      alert(i);
+	    }
+	  }
+	}
+
+	addHandlers($('#closure-bad').children());
+					</code></pre>
+					<div style="width:90%; margin:0 auto; text-align:left;">
+						<small style="float:right;">
+							<a data-id="2">Run this code</a>
+						</small>
+						<small >각각의 이벤트 핸들러에 고유한 i를 할당하려 했지만 마지막 i의 값에 연결됨</small>
+					</div>
+				</section>
+				<section>
+					<h2>Closure</h2>
+					<p>더 나은 예제</p>
+					<pre><code id="closure-good">
+	var addHandlers = function(nodes) {
+	  var i;
+	  for (i = 0 ; i < nodes.length ; i += 1) {
+	    nodes[i].onclick = function(i) {
+	      return function(e) {
+	        alert(i)
+	      }
+	    }(i);
+	  }
+	}
+
+	addHandlers($('#closure-good').children());
+					</code></pre>
+					<div style="width:90%; margin:0 auto; text-align:left;">
+						<small style="float:right;">
+							<a data-id="3">Run this code</a>
+						</small>
+						<small style="width:70%;">onclick 에 할당되는 함수를 바로 실행해 스코프를 만들고 내부에 실제 핸들러에 연결되는 클로져 함수를 생성</small>
+					</div>
+				</section>
+			</section>
+			<section class="stack">
+				<section>
+					<h2>Module</h2>
+					<p>
+						내부의 상태, 구현을 숨기고 인터페이스만 제공하는 함수, 객체
+					</p>
+					<ul>
+						<li>전역변수를 사용하지 않을 수 있음</li>
+						<li>함수 유효범위와 클로저의 특성을 활용</li>
+						<li>클로저를 활용해 인터페이스 제공</li>
+					</ul>
+				</section>
+				<section>
+					<h2>How to use</h2>
+					<p>
+						함수 내에서만 사용하고 싶은 객체, 어떻게 저장하면 좋을까??
+					</p>
+					<ul>
+						<li>전역변수 >> 사용하면 안되는 나쁜놈!!</li>
+						<li>객체를 함수 내에서 정의 >> 비효율적!!</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Use case(1)</h2>
+					<p>
+						함수에 사용할 객체를 함수내부에 두고, 클로저를 만들자
+					</p>
+					<pre><code>
+Function.prototype.method = function(name, func) {
+  this.prototype[name] = func;
+  return this;
+}
+
+String.method('deentityify', function() {
+    var entity = {
+        quot: '"',
+        lt:   '<',
+        qt:   '>'
+    };
+
+    return function() {
+        return this.replace(/&([^&;]+);/g, function(a, b) {
+            var r = entity[b];
+            return typeof r === 'string' ? r : a;
+            }
+        );
+    };
+}());
+
+'&lt;&quot;&gt;'.deentityify();
+					</code></pre>
+					<div style="width:90%; margin:0 auto; text-align:left;">
+						<small style="float:right;">
+							<a data-id="4">Run this code</a>
+						</small> 
+					</div>
+				</section>
+				<section>
+					<h2>Use case(2)</h2>
+					<p>
+						모듈 패턴을 활용한 안전한 객체 생성
+					</p>
+					<pre><code>
+var serial_maker = function() {
+  var prefix = 0;
+  var seq    = 0;
+
+  return {
+    set_prefix : function(p) {
+      prefix = String(p);
+    },
+    set_seq : function(s) {
+      seq = s;
+    },
+    gensym : function() {
+      var result = prefix + seq;
+      seq += 1;
+      return result;
+    }
+  };
+};
+
+var seqer = serial_maker();
+seqer.set_prefix('Q');
+seqer.set_seq(1000);
+seqer.gensym();
+					</code></pre>
+					<div style="width:90%; margin:0 auto; text-align:left;">
+						<small style="float:right;">
+							<a data-id="5">Run this code</a>
+						</small> 
+					</div>
+				</section>
+			</section>
+			<section>
+				<h2>Curry</h2>
+				<p>
+					함수와 인수를 결합해 새로운 함수를 만들 수 있는 패턴
+				</p>
+				<pre><code>
+Function.prototype.method = function(name, func) {
+  this.prototype[name] = func;
+  return this;
+}
+
+Function.method('curry', function() {
+  var slice = Array.prototype.slice;
+  var args  = slice.apply(arguments);
+  var that  = this;
+
+  return function() {
+    return that.apply(null, args.concat(slice.apply(arguments)));
+  }
+});
+
+var add = function(a, b) {
+  return a + b;
+}
+
+var add1 = add.curry(1);
+add1(7);
+				</code></pre>
+				<div style="width:90%; margin:0 auto; text-align:left;">
+						<small style="float:right;">
+							<a data-id="6">Run this code</a>
+						</small> 
+					</div>
+			</section>
+			<section class="stack">
+				<section>
+					<h2>Memoization</h2>
+					<p>
+						이전 연산결과를 저장하는 최적화 기법
+					</p>
+					<pre><code>
+	var fibo = function(n) {
+	  return n < 2 ? n : fibo(n-1) + fibo(n-2);
+	};
+
+	for (var i = 0 ; i <= 10; i += 1) {
+	  fibo(i);
+	}
+					</code></pre>
+				 </section>
+				<section>
+					<h2>Memoization</h2>
+					<p>
+						호출횟수가 줄었다는데, 어떻게 확인하지??
+					</p>
+					<pre><code>
+	var fibo = function() {
+	  var memo = [0,1];
+	  var fib = function(n) {
+	    var result = memo[n];
+	    if (typeof result !== 'number') {
+	      result = fib(n - 1) + fib(n - 2);
+	      memo[n] = result;
+	    }
+	    return result;
+	  };
+	  return fib;
+	}();
+
+	for (var i = 0 ; i <= 10; i += 1) {
+	  fibo(i);
+	}
+					</code></pre>
+				</section>
+			</section>
+			<section>
+				<h2>repoll</h2>
+				<a style="margin-bottom:15px;" href="http://repoll.herokuapp.com">http://repoll.herokuapp.com</a>
+				<p>
+					<canvas id="mychart" width="600" height="300"></canvas>
+				</p>
+				<small style="width:20px; background-color:#F38630;" class="answerbox"></small>
+				<small style="margin-right:20px;">prototype</small>
+				<small style="width:20px; background-color:#E0E4CC;" class="answerbox"></small>
+				<small style="margin-right:20px;">closure</small>
+				<small style="width:20px; background-color:#69D2E7;" class="answerbox"></small>
+				<small>inheritance</small>
+			</section>
+			<section>
+				<h1>Q & A</h1>
+			</section>
+		</div>
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+	<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+	<script src="js/jquery.pnotify.min.js"></script>
+	<script src="js/chart.js"></script>
+	<script src="http://repoll.herokuapp.com/socket.io/socket.io.js"></script>
+	<script src="js/client.js"></script> 
+
+	<script>
+
+		// Full list of configuration options available here:
+		// https://github.com/hakimel/reveal.js#configuration
+		Reveal.initialize({
+			controls: false,
+			progress: true,
+			history: true,
+			center: true,
+
+			theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+			transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+			// Optional libraries used to extend on reveal.js
+			dependencies: [
+				{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+				{ src: 'plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+				// { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+				// { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				// { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+				// { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+			]
+		});
+
+	</script>
+</body>
+</html>
